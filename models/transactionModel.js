@@ -66,9 +66,7 @@ transactionSchema.statics.Sell = async function (
       ? (availableQuantity += symbol.quantity)
       : (availableQuantity -= symbol.quantity);
   });
-  console.log(availableQuantity);
-  if (availableQuantity - quantity < 0)
-    throw Error("No available stock to sell!");
+  if (availableQuantity - quantity < 0) throw Error("No enough stock to sell!");
 
   const transaction = await this.create({
     userId: userId,

@@ -7,7 +7,7 @@ const {
 
 const router = express.Router();
 
-router.get("/chart", getChartData);
+router.post("/chart", getChartData);
 router.get("/watchlist", getWatchlist);
 
 router.get("/portfolio", getPortfolio);

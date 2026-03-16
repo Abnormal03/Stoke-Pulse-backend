@@ -3,6 +3,7 @@ const Transaction = require("../models/transactionModel");
 
 const buyStock = async (req, res) => {
   const { symbol, quantity, price } = req.body;
+
   const userId = req.user;
 
   try {

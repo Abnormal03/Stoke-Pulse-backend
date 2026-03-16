@@ -13,10 +13,12 @@ const getChartData = async (req, res) => {
 
   try {
     const response = await axios.get(
-      `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${symbol}&apikey=${process.env.MARKET_API}`,
+      `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${symbol}&from=2025-01-01&apikey=${process.env.MARKET_API}`,
     );
-
-    res.status(200).json(response.data);
+    if (!response.data || response.data.length === 0) {
+      return res.status(404).json({ error: "No data found for this symbol" });
+    }
+    res.status(200).json({ data: response.data });
   } catch (error) {
     res.status(500).json({ error: "error while fetching chart data..." });
   }
@@ -77,6 +79,10 @@ const getPortfolio = async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+const getPortfolioDetail = async (req, res) => {
+  // const
 };
 
 module.exports = { getChartData, getWatchlist, getPortfolio };

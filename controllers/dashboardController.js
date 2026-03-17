@@ -1,12 +1,12 @@
 const axios = require("axios");
-const { useState } = require("react");
 
 const Transaction = require("../models/transactionModel");
-const { response } = require("express");
+const User = require('../models/user');
 //methods for the dashboard components....
 //get the chart....
 const getChartData = async (req, res) => {
   const { symbol } = req.body;
+
   if (!symbol) {
     return res.status(400).json({ error: "Symbol is required" });
   }
@@ -57,14 +57,20 @@ const getPortfolio = async (req, res) => {
           totalCost: 0,
         };
       }
+      const asset = portfolioMap[t.symbol];
 
       if (t.status === "buy") {
-        portfolioMap[t.symbol].totalQuantity += t.quantity;
-        portfolioMap[t.symbol].totalCost += t.quantity * t.priceAtTransaction;
+        asset.totalQuantity += t.quantity;
+        asset.totalCost += t.quantity * t.priceAtTransaction;
       } else if (t.status === "sell") {
-        portfolioMap[t.symbol].totalQuantity -= t.quantity; //no change on the total cost...
+        const avgPriceBeforeSale = asset.totalCost / asset.totalQuantity;
+        asset.totalQuantity -= t.quantity; //no change on the total cost...
+        asset.totalCost -= t.quantity * avgPriceBeforeSale;
       }
     });
+
+    const user = await User.findById(req.user);
+    const balance = user?.balance;
 
     // Convert the map back into an array and filter out empty holdings
     const portfolio = Object.values(portfolioMap)
@@ -75,14 +81,10 @@ const getPortfolio = async (req, res) => {
         avgPrice: (item.totalCost / (item.totalQuantity || 1)).toFixed(2),
       }));
 
-    res.status(200).json(portfolio);
+    res.status(200).json({portfolio, balance});
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-};
-
-const getPortfolioDetail = async (req, res) => {
-  // const
 };
 
 module.exports = { getChartData, getWatchlist, getPortfolio };

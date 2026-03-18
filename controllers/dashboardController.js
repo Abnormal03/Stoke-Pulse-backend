@@ -2,7 +2,6 @@ const axios = require("axios");
 
 const Transaction = require("../models/transactionModel");
 const User = require('../models/user');
-const watchlist = require("../models/watchlistModel");
 //methods for the dashboard components....
 //get the chart....
 const getChartData = async (req, res) => {
@@ -27,70 +26,18 @@ const getChartData = async (req, res) => {
 
 //get the watchlists...
 const getWatchlist = async (req, res) => {
+  //asumming we only use the symbols that are supported by our api...
   try {
-    const myWatchlist = await watchlist.find({userId: req.user});
-    const detailedWatchlist = await Promise.all(
-      myWatchlist.map(async (watch)=>{
-        try {
-          const response = await axios.get(`https://financialmodelingprep.com/stable/quote-short?symbol=${watch.symbol}&apikey=${process.env.MARKET_API}`)
+    // using promise to wait for each fetch for each symbol...
+    const response = await axios.get(
+      `https://financialmodelingprep.com/stable/biggest-gainers?apikey=${process.env.MARKET_API}`,
+    );
 
-          const watchDetails = response.data[0];
-          //changing the mongoose object to js object...
-          const watchObj = watch.toObject();
-          if(response.status!==200){
-            return {...watchObj, currentPrice: 0, change: 0};
-          }else{
-            return {...watchObj, currentPrice: watchDetails.price, change: watchDetails.change }
-          }
-        } catch (error) {
-          console.log(`Error fetching ${watch.Symbol}:`, error.message);
-          return {...watchObj, currentPrice: 0, change: 0};
-        }
-      })
-    )
-    res.status(200).json({myWatchlist: detailedWatchlist});
+    res.status(200).json(response.data);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
-
-//add new watch to watchlist...
-const addWatch = async (req, res)=>{
-  const {symbol} = req.body;
-  try {
-    const newWatch = await watchlist.addWatch(symbol, req.user);
-
-    if (!newWatch) {
-      res.status(400).json({error: 'unable to add a watch'});
-    }
-
-    if (newWatch) {
-      res.status(200).json({watch: newWatch});
-    }
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
-} 
-
-//remove a watch from users' watchlist....
-const removeWatch = async (req,res)=>{
-  //get  the id from the parameters...
-  const {id} = req.params;
-  try {
-    const exists = await watchlist.findById(id);
-    if (exists) {
-      const removed = await watchlist.removeWatch(id);
-      if(removed){
-        return res.status(200).json({removed: true});
-      }else{
-        return res.status(400).json({error: `unable to remove symbol from watchlist`});
-      }
-    }
-    res.status(400).json({error: 'symbol do not exits in watchlist.'});
-  } catch (error) {
-    res.status(400).json({error: error.message});
-  }
-}
 
 //trading sidebar(buy or sell a symbol/stock) can be fetched from the available datas...
 
@@ -140,4 +87,4 @@ const getPortfolio = async (req, res) => {
   }
 };
 
-module.exports = { getChartData, getWatchlist, getPortfolio , addWatch, removeWatch};
+module.exports = { getChartData, getWatchlist, getPortfolio };

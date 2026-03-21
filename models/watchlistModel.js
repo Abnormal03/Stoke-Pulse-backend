@@ -1,20 +1,29 @@
 const mongoose = require("mongoose");
 
 const watchlistSchema = mongoose.Schema({
-  Symbol: {
+  symbol: {
     type: String,
     required: true,
   },
+  userId:{
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  }
 });
 
-watchlistSchema.statics.addWatch = async (symbol) => {
+watchlistSchema.statics.addWatch = async function (symbol, userId){
   if (!symbol) {
     throw Error("symbol name is required!");
   }
 
   try {
+    //check if it already exists...
+    const exists = await this.findOne({ symbol: symbol, userId: userId });
+    if (exists) throw Error("Stock already in watchlist");
+
     const newWatch = await this.create({
       symbol,
+      userId
     });
     return newWatch;
   } catch (error) {
@@ -22,9 +31,9 @@ watchlistSchema.statics.addWatch = async (symbol) => {
   }
 };
 
-watchlistSchema.statics.removeWatch = async (_id) => {
+watchlistSchema.statics.removeWatch= async function(_id){
   if (!_id) {
-    throw Error("id name is required!");
+    throw Error("symbol id is required!");
   }
   try {
     const removed = await this.findByIdAndDelete(_id);

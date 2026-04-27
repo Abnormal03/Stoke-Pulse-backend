@@ -28,27 +28,34 @@ const getChartData = async (req, res) => {
 //get the watchlists...
 const getWatchlist = async (req, res) => {
   try {
-    const myWatchlist = await watchlist.find({userId: req.user});
-    const detailedWatchlist = await Promise.all(
-      myWatchlist.map(async (watch)=>{
-        try {
-          const response = await axios.get(`https://financialmodelingprep.com/stable/quote-short?symbol=${watch.symbol}&apikey=${process.env.MARKET_API}`)
+    const myWatchlist = await watchlist.find({ userId: req.user }).lean();
+    const symbols = myWatchlist.map((w) => w.symbol).filter(Boolean);
 
-          const watchDetails = response.data[0];
-          //changing the mongoose object to js object...
-          const watchObj = watch.toObject();
-          if(response.status!==200){
-            return {...watchObj, currentPrice: 0, change: 0};
-          }else{
-            return {...watchObj, currentPrice: watchDetails.price, change: watchDetails.change }
-          }
-        } catch (error) {
-          console.log(`Error fetching ${watch.Symbol}:`, error.message);
-          return {...watchObj, currentPrice: 0, change: 0};
-        }
-      })
-    )
-    res.status(200).json({myWatchlist: detailedWatchlist});
+    if (symbols.length === 0) {
+      return res.status(200).json({ myWatchlist: [] });
+    }
+
+    // FMP supports batching: quote-short?symbol=AAPL,MSFT
+    const response = await axios.get(
+      `https://financialmodelingprep.com/stable/quote-short?symbol=${encodeURIComponent(
+        symbols.join(","),
+      )}&apikey=${process.env.MARKET_API}`,
+      { timeout: 8000 },
+    );
+
+    const quotes = Array.isArray(response.data) ? response.data : [];
+    const quoteBySymbol = new Map(quotes.map((q) => [q.symbol, q]));
+
+    const detailedWatchlist = myWatchlist.map((w) => {
+      const q = quoteBySymbol.get(w.symbol);
+      return {
+        ...w,
+        currentPrice: q?.price ?? 0,
+        change: q?.change ?? 0,
+      };
+    });
+
+    res.status(200).json({ myWatchlist: detailedWatchlist });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

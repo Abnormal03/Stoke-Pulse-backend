@@ -16,7 +16,8 @@ const dashboard = require("./routes/dashboard");
 
 const app = express();
 
-app.use(express.json());
+app.disable("x-powered-by");
+app.use(express.json({ limit: "1mb" }));
 
 //deployment ready...
 app.use(cors({
@@ -46,15 +47,34 @@ app.use("/api/dashboard", dashboard);
 //search for a new stoks, and display most traded...
 app.use("/api/market", market);
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("connected to the database!");
-  })
-  .catch((error) => {
-    console.log("error while connecting to the database! \n", error);
-  });
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log("server listening at port: ", port);
+
+async function start() {
+  if (!process.env.MONGO_URI) {
+    throw new Error("Missing MONGO_URI in environment");
+  }
+  if (!process.env.SECRET) {
+    throw new Error("Missing SECRET in environment");
+  }
+
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log("connected to the database!");
+
+  const server = app.listen(port, () => {
+    console.log("server listening at port: ", port);
+  });
+
+  const shutdown = async () => {
+    server.close(() => {});
+    await mongoose.connection.close();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
+
+start().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });

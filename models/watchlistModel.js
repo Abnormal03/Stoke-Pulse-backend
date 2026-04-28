@@ -11,6 +11,8 @@ const watchlistSchema = mongoose.Schema({
   }
 });
 
+watchlistSchema.index({ userId: 1, symbol: 1 }, { unique: true });
+
 watchlistSchema.statics.addWatch = async function (symbol, userId){
   if (!symbol) {
     throw Error("symbol name is required!");

@@ -20,8 +20,23 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "1mb" }));
 
 //deployment ready...
+const allowedOrigins = [
+  'https://stock-pulse-frontend-murex.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
 app.use(cors({
-  origin: 'https://stock-pulse-frontend-murex.vercel.app',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked Origin:", origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));

@@ -21,12 +21,10 @@ app.use(express.json({ limit: "1mb" }));
 
 //deployment ready...
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://stock-pulse-frontend-murex.vercel.app/'
-  ],
+  origin: 'https://stock-pulse-frontend-murex.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
-}))
+}));
 
 //handling the signup and login...
 app.use("/api/user", user);
@@ -65,7 +63,7 @@ async function start() {
   });
 
   const shutdown = async () => {
-    server.close(() => {});
+    server.close(() => { });
     await mongoose.connection.close();
     process.exit(0);
   };

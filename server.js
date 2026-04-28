@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require('cors');
 
 //authorization middleware
 const authorization = require("./middlewares/authorization");
@@ -16,6 +17,15 @@ const dashboard = require("./routes/dashboard");
 const app = express();
 
 app.use(express.json());
+
+//deployment ready...
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://stock-pulse-frontend-murex.vercel.app/'
+  ],
+  credentials: true
+}))
 
 //handling the signup and login...
 app.use("/api/user", user);
